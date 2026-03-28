@@ -1,10 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { resendVerificationEmail } from "@/lib/auth";
 
 export default function EmailVerifikacijaPage() {
+  return (
+    <Suspense>
+      <EmailVerifikacijaContent />
+    </Suspense>
+  );
+}
+
+function EmailVerifikacijaContent() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email") ?? "";
   const [resent, setResent] = useState(false);
