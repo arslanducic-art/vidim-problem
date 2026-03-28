@@ -1,0 +1,40 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users can read/write their own document
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Problems: anyone can read, authenticated + verified users can create
+    match /problems/{problemId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.auth.token.email_verified == true;
+      allow update: if request.auth != null
+        && (request.auth.uid == resource.data.userId
+          || request.auth.token.moderator == true);
+      allow delete: if request.auth != null
+        && request.auth.token.moderator == true;
+    }
+
+    // Moderator-only collections
+    match /admins/{docId} {
+      allow read, write: if request.auth != null
+        && request.auth.token.moderator == true;
+    }
+
+    match /counters/{docId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.auth.token.email_verified == true;
+    }
+
+    match /routingConfig/{docId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.auth.token.moderator == true;
+    }
+  }
+}
