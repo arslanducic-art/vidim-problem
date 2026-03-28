@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { signOut } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { MapPin, Plus, LogOut, User } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
 export default function MapaPage() {
   const { user } = useAuth();
@@ -13,17 +14,7 @@ export default function MapaPage() {
     <div style={{ background: "var(--background)", minHeight: "100svh" }} className="flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4">
-        <div className="flex items-center gap-2">
-          <div
-            style={{ background: "var(--primary)", borderRadius: 10, width: 32, height: 32 }}
-            className="flex items-center justify-center"
-          >
-            <MapPin size={18} color="white" />
-          </div>
-          <span style={{ fontSize: 18, fontWeight: 800, color: "var(--foreground)" }}>
-            Vidim Problem
-          </span>
-        </div>
+        <Logo />
 
         <div className="flex items-center gap-2">
           <div
