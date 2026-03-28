@@ -26,7 +26,7 @@ export interface ReportData {
   categoryLabel: string;
   description: string;
   location: { lat: number; lng: number };
-  photoFile: File;
+  photoFiles: File[];
 }
 
 export interface Report {
@@ -47,6 +47,8 @@ export async function fetchCategories(): Promise<Category[]> {
 }
 
 // Check for duplicate: same category, within 50m, last 90 days
+// NOTE: Firestore only supports inequality on one field per query.
+// We use geohash range only, then filter by date/status/distance client-side.
 export async function checkDuplicate(
   lat: number,
   lng: number,
@@ -55,20 +57,23 @@ export async function checkDuplicate(
   const center = [lat, lng] as [number, number];
   const radiusM = 50;
   const bounds = geohashQueryBounds(center, radiusM);
-  const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+  const ninetyDaysAgo = Timestamp.fromDate(
+    new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+  );
 
   for (const b of bounds) {
     const q = query(
       collection(db, "reports"),
       where("location.geohash", ">=", b[0]),
       where("location.geohash", "<=", b[1]),
-      where("category", "==", category),
-      where("createdAt", ">=", Timestamp.fromDate(ninetyDaysAgo)),
-      where("status", "!=", "riješeno")
+      where("category", "==", category)
     );
     const snap = await getDocs(q);
     for (const d of snap.docs) {
       const data = d.data();
+      // Client-side filters: date + status + distance
+      if (data.status === "riješeno") continue;
+      if (data.createdAt && data.createdAt < ninetyDaysAgo) continue;
       const dist = distanceBetween(center, [data.location.lat, data.location.lng]) * 1000;
       if (dist <= radiusM) {
         return { id: d.id, ...data } as Report;
@@ -78,12 +83,18 @@ export async function checkDuplicate(
   return null;
 }
 
-// Upload photo to Firebase Storage
-export async function uploadPhoto(file: File, reportId: string): Promise<string> {
-  const ext = file.name.split(".").pop() ?? "jpg";
-  const storageRef = ref(storage, `reports/${reportId}/photo.${ext}`);
-  await uploadBytes(storageRef, file);
-  return getDownloadURL(storageRef);
+// Upload multiple photos to Firebase Storage sequentially
+export async function uploadPhotos(files: File[], reportId: string): Promise<string[]> {
+  const urls: string[] = [];
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const ext = file.name.split(".").pop() ?? "jpg";
+    const storageRef = ref(storage, `reports/${reportId}/photo_${i}.${ext}`);
+    await uploadBytes(storageRef, file);
+    const url = await getDownloadURL(storageRef);
+    urls.push(url);
+  }
+  return urls;
 }
 
 // Generate ticket ID atomically: #NS-2026-XXXX
@@ -106,7 +117,7 @@ export async function generateTicketId(): Promise<string> {
 // Create report document in Firestore
 export async function createReport(data: ReportData): Promise<{ id: string; ticketId: string }> {
   const reportId = doc(collection(db, "reports")).id;
-  const photoUrl = await uploadPhoto(data.photoFile, reportId);
+  const photoUrls = await uploadPhotos(data.photoFiles, reportId);
   const ticketId = await generateTicketId();
   const geohash = geohashForLocation([data.location.lat, data.location.lng]);
 
@@ -118,7 +129,7 @@ export async function createReport(data: ReportData): Promise<{ id: string; tick
       category: data.category,
       categoryLabel: data.categoryLabel,
       description: data.description || null,
-      photoUrl,
+      photoUrls,
       location: {
         lat: data.location.lat,
         lng: data.location.lng,

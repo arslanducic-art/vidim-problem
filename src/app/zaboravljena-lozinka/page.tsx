@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Mail } from "lucide-react";
+import { ArrowLeft, Mail, MailCheck } from "lucide-react";
 import { sendPasswordReset } from "@/lib/auth";
 
 export default function ZaboravljenaLozinkaPage() {
@@ -62,14 +62,56 @@ export default function ZaboravljenaLozinkaPage() {
         </div>
 
         {sent ? (
-          <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: "var(--radius-xl)" }} className="p-4">
-            <p style={{ fontSize: 15, fontWeight: 600, color: "#166534" }}>
-              Poslali smo link za reset lozinke na tvoj email.
-            </p>
-            <p style={{ fontSize: 14, color: "#166534", marginTop: 4, fontWeight: 500 }}>
-              Provjeri inbox i spam folder.
-            </p>
-          </div>
+          <>
+            {/* Success icon */}
+            <div
+              style={{
+                width: 80, height: 80, borderRadius: 40,
+                background: "var(--success)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                marginTop: 48, marginBottom: 32,
+              }}
+            >
+              <MailCheck size={40} color="var(--success-foreground)" />
+            </div>
+
+            {/* Header */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 40 }}>
+              <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.8px", lineHeight: 1.2, margin: 0 }}>
+                Provjerite email
+              </h1>
+              <p style={{ fontSize: 16, fontWeight: 500, color: "var(--muted-foreground)", lineHeight: 1.5, margin: 0 }}>
+                Poslali smo upute za ponovno postavljanje lozinke na vašu email adresu. Molimo provjerite i mapu neželjene pošte.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div style={{ marginTop: "auto", display: "flex", flexDirection: "column" }}>
+              <button
+                onClick={() => router.push("/login")}
+                style={{
+                  width: "100%", height: 56,
+                  borderRadius: "var(--radius-xl)",
+                  background: "var(--primary)", color: "var(--primary-foreground)",
+                  fontSize: 16, fontWeight: 700,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+              >
+                Povratak na prijavu
+              </button>
+
+              <p style={{ textAlign: "center", marginTop: 32, fontSize: 15, fontWeight: 500, color: "var(--muted-foreground)" }}>
+                Niste primili email?{" "}
+                <button
+                  onClick={async () => { setLoading(true); await sendPasswordReset(email).catch(() => {}); setLoading(false); }}
+                  disabled={loading}
+                  style={{ color: "var(--foreground)", fontWeight: 700, background: "none" }}
+                >
+                  {loading ? "Slanje..." : "Pošaljite ponovno"}
+                </button>
+              </p>
+            </div>
+          </>
         ) : (
           <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">

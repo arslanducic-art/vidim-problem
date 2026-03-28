@@ -37,10 +37,17 @@ service cloud.firestore {
         && request.auth.token.moderator == true;
     }
 
-    match /config/{docId} {
+    match /config/routing {
       allow read: if true;
       allow write: if request.auth != null
         && request.auth.token.moderator == true;
+    }
+
+    // Counter increment dozvoljeno svim verificiranim korisnicima
+    match /config/counters {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.auth.token.email_verified == true;
     }
 
     match /reports/{reportId} {

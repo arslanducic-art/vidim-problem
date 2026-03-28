@@ -2,7 +2,7 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     // Problem photos: authenticated + verified users can upload
-    match /problems/{problemId}/{fileName} {
+    match /reports/{problemId}/{fileName} {
       allow read: if true;
       allow write: if request.auth != null
         && request.auth.token.email_verified == true
